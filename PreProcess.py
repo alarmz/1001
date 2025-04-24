@@ -5,6 +5,7 @@ import os
 import sqlite3
 import random
 import string
+from docx.enum.text import WD_COLOR_INDEX
 
 
 class docx1001:
@@ -13,10 +14,26 @@ class docx1001:
         self.docx_files = []
         self.conn = sqlite3.connect("word_data.db")
         self.cursor = self.conn.cursor()
+        self.Create_Sqlite_DB()
         self.All_Processed_words = []
         self.YELLOW = 7
         self.BRIGHT_GREEN = 4
         self.pool = string.ascii_letters + string.digits
+        pass
+    
+    def Create_Sqlite_DB(self):
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS Word (
+            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            sWord TEXT,
+            sType TEXT,
+            isIgnore INTEGER,
+            imgData BLOB
+        );
+        """
+        self.cursor.execute(create_table_sql)
+        self.conn.commit()
+        #self.conn.close()
         pass
     
     def List_processed_documents(self):
@@ -37,7 +54,11 @@ class docx1001:
         for aDocxFile in self.docx_files:
             sFileFull_Path = os.path.join(self.processed_data, aDocxFile)
             print(sFileFull_Path)
-            self.OpenDocx_ReadWords_by_Words(sFileFull_Path)
+            #self.OpenDocx_ReadWords_by_Words(sFileFull_Path)
+            if ("字庫A.docx" in sFileFull_Path):
+                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path, "CASE_A")
+            elif ("字庫B.docx" in sFileFull_Path):
+                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path, "CASE_B")
             #break
             #call process open document
             
@@ -60,6 +81,13 @@ class docx1001:
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
             self.conn.commit()
+            
+    def Insert_Image_to_DB_CASE_B(self, sWord, imgData):
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 1, ?)"
+        isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
+        if (isExists == None):        
+            self.cursor.execute(SQL, (imgData, ))
+            self.conn.commit()    
         
     def dbCheck_Exist_B4_Insert(self, sTable, sWord):
         if (sWord == "覩"):
@@ -82,6 +110,47 @@ class docx1001:
         if (isExists == None):        
             self.cursor.execute(SQL)
             self.conn.commit()
+            
+    def CASE_A_Need_Highlight_Hard_dual_sound(self, index, para, run):
+        #【字庫A】要標的差異字/難字/破音字
+        ix = index + 1
+        image_blob = self.extract_image_from_run(para.runs[ix])
+        file_name = self.Save_Image(index, run.text, image_blob)
+        binary_data = self.convert_to_binary_data(file_name)
+        self.Insert_Image_to_DB(run.text, binary_data)        
+        
+    def CASE_B_Need_Highlight_Hard_dual_sound(self, index, para, run):
+        #【字庫B】有差異但是可以忽略的字→需刪除標示
+        ix = index + 1
+        image_blob = self.extract_image_from_run(para.runs[ix])
+        try:
+            file_name = self.Save_Image(index, run.text, image_blob)
+            binary_data = self.convert_to_binary_data(file_name)
+        except:
+            print("!!!!!!!!!!")
+            print(run.text)
+        
+        self.Insert_Image_to_DB_CASE_B(run.text, binary_data)      
+
+            
+    def OpenDocx_Read_Table_Data_From_Docx(self, sFileFull_Path, CASE_ABC):
+        document = Document(sFileFull_Path)
+        for table in document.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        for index, run in enumerate(para.runs):
+                            text = run.text.strip()
+                            if (not text): continue
+                            if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
+                                if (CASE_ABC == "CASE_A"):
+                                    self.CASE_A_Need_Highlight_Hard_dual_sound(index, para, run)
+                                elif (CASE_ABC == "CASE_B"):
+                                    self.CASE_B_Need_Highlight_Hard_dual_sound(index, para, run)
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
+                                self.Insert_Sound_Words_to_DB(run.text)
+                                
+                                    
             
     def OpenDocx_ReadWords_by_Words(self, sFileFull_Path):
         docx = Document(sFileFull_Path)
