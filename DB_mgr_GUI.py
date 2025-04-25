@@ -1,118 +1,109 @@
 import sqlite3
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
 import io
+from PIL import Image
+import numpy as np
+from dearpygui.core import *
+from dearpygui.simple import *
 
-PAGE_SIZE = 100
+conn = sqlite3.connect("word_data.db")
+image_registry = {}
 
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("SQLite GUI Grid with Pagination and Search")
-        self.current_page = 0
-        self.search_text = ""
-        self.image_refs = {}
+# 暫存新增圖片的 binary
+new_image_bytes = b''
 
-        # 搜尋欄
-        search_frame = tk.Frame(root)
-        search_frame.pack(pady=5)
-        self.search_entry = tk.Entry(search_frame, width=40)
-        self.search_entry.pack(side=tk.LEFT, padx=5)
-        tk.Button(search_frame, text="搜尋", command=self.search).pack(side=tk.LEFT)
+def load_image_from_blob(blob):
+    image = Image.open(io.BytesIO(blob)).convert("RGBA")
+    image = image.resize((64, 64))
+    width, height = image.size
+    data = np.array(image).flatten() / 255.0
+    return width, height, data.tolist()
 
-        # Treeview
-        self.tree = ttk.Treeview(root, columns=("ID", "Text", "Checkbox", "Combobox", "Image"), show="headings", height=20)
-        for col in ("ID", "Text", "Checkbox", "Combobox", "Image"):
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=100)
-        self.tree.pack(fill=tk.BOTH, expand=True)
+def refresh_table():
+    delete_item("table_area", children_only=True)
 
-        # 分頁按鈕
-        btn_frame = tk.Frame(root)
-        btn_frame.pack(pady=10)
-        self.prev_btn = tk.Button(btn_frame, text="上一頁", command=self.prev_page)
-        self.prev_btn.grid(row=0, column=0, padx=10)
-        self.page_label = tk.Label(btn_frame, text="Page 1")
-        self.page_label.grid(row=0, column=1, padx=10)
-        self.next_btn = tk.Button(btn_frame, text="下一頁", command=self.next_page)
-        self.next_btn.grid(row=0, column=2, padx=10)
-
-        self.load_page()
-
-    def search(self):
-        self.search_text = self.search_entry.get()
-        self.current_page = 0
-        self.load_page()
-
-    def load_page(self):
-        self.tree.delete(*self.tree.get_children())
-        self.image_refs.clear()
-
-        conn = sqlite3.connect("word_data.db")
-        cursor = conn.cursor()
-
-        params = []
-        query = "SELECT id, sWord, isIgnore, sType, imgData FROM Word"
-        if self.search_text:
-            query += " WHERE text LIKE ?"
-            params.append(f"%{self.search_text}%")
-        query += " LIMIT ? OFFSET ?"
-        params.extend([PAGE_SIZE, self.current_page * PAGE_SIZE])
-
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-
-        for row in rows:
-            id_val, text, checked, option, image_blob = row
-            if image_blob:
-                image = Image.open(io.BytesIO(image_blob))
-                image.thumbnail((50, 50))
-                photo = ImageTk.PhotoImage(image)
-                self.image_refs[id_val] = photo
-            else:
-                photo = None
-            self.tree.insert("", "end", values=(id_val, text, "✓" if checked else "", option), image=photo)
-
-        self.page_label.config(text=f"Page {self.current_page + 1}")
-        conn.close()
-
-    def next_page(self):
-        self.current_page += 1
-        self.load_page()
-
-    def prev_page(self):
-        if self.current_page > 0:
-            self.current_page -= 1
-            self.load_page()
-
-# 建立測試資料（第一次用）
-def create_sample_db():
-    import random
-    conn = sqlite3.connect("sample.db")
     cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT,
-        checked INTEGER,
-        option TEXT,
-        image_blob BLOB
+    cursor.execute("SELECT ID, sWord, sType, isIgnore, imgData FROM Word")
+    rows = cursor.fetchall()
+
+    for row in rows:
+        id_, sWord, sType, isIgnore, imgData = row
+        texture_id = f"img_{id_}"
+
+        if texture_id not in image_registry:
+            w, h, img_data = load_image_from_blob(imgData)
+            add_static_texture(w, h, img_data, tag=texture_id)
+            image_registry[texture_id] = True
+
+        with group(horizontal=True, parent="table_area"):
+            add_image(texture_id, width=64, height=64)
+            add_input_text(f"word_{id_}", default_value=sWord, width=150)
+            add_combo(f"type_{id_}", items=["noun", "verb", "adj"], default_value=sType, width=100)
+            add_checkbox(f"ignore_{id_}", default_value=bool(isIgnore))
+            add_button(f"儲存##{id_}", callback=lambda s, d, row_id=id_: update_row(row_id))
+            add_button(f"刪除##{id_}", callback=lambda s, d, row_id=id_: delete_row(row_id))
+
+def update_row(row_id):
+    word = get_value(f"word_{row_id}")
+    s_type = get_value(f"type_{row_id}")
+    is_ignore = get_value(f"ignore_{row_id}")
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE Word SET sWord=?, sType=?, isIgnore=? WHERE ID=?",
+        (word, s_type, int(is_ignore), row_id)
     )
-    """)
-    with open("sample_image.jpg", "rb") as f:
-        img_data = f.read()
-    cursor.execute("DELETE FROM records")
-    for i in range(300):
-        keyword = "範例" if i % 10 == 0 else "資料"
-        cursor.execute("INSERT INTO records (text, checked, option, image_blob) VALUES (?, ?, ?, ?)",
-                       (f"{keyword} {i+1}", random.randint(0, 1), f"選項{chr(65 + i % 3)}", img_data))
     conn.commit()
-    conn.close()
+    log_info(f"更新成功 ID: {row_id}")
 
-if __name__ == "__main__":
-    #create_sample_db()  # 跑一次即可
+def delete_row(row_id):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM Word WHERE ID = ?", (row_id,))
+    conn.commit()
+    refresh_table()
 
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+def add_new_row_callback():
+    global new_image_bytes
+
+    word = get_value("new_word")
+    s_type = get_value("new_type")
+    is_ignore = get_value("new_ignore")
+
+    if not word or not new_image_bytes:
+        log_error("請輸入單字並選擇圖片")
+        return
+
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO Word (sWord, sType, isIgnore, imgData) VALUES (?, ?, ?, ?)",
+        (word, s_type, int(is_ignore), new_image_bytes)
+    )
+    conn.commit()
+    new_image_bytes = b''
+    clear_entry("new_word")
+    set_value("new_ignore", False)
+    refresh_table()
+    log_info("新增成功！")
+
+def handle_file_picker(sender, data):
+    global new_image_bytes
+    path = data
+    with open(path, "rb") as f:
+        new_image_bytes = f.read()
+    set_value("new_image_path", path)
+
+with window("Word Table"):
+    add_button("刷新資料", callback=lambda: refresh_table())
+    add_spacing(count=1)
+
+    with collapsing_header("新增資料", default_open=False):
+        add_input_text("new_word", label="單字")
+        add_combo("new_type", label="類型", items=["noun", "verb", "adj"], default_value="noun")
+        add_checkbox("new_ignore", label="忽略")
+        add_input_text("new_image_path", label="圖片路徑", readonly=True)
+        add_button("選擇圖片", callback=lambda: open_file_dialog(callback=handle_file_picker))
+        add_button("新增", callback=add_new_row_callback)
+
+    add_separator()
+    add_child("table_area", width=800, height=500)
+
+refresh_table()
+start_dearpygui()
