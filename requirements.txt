@@ -1,0 +1,5 @@
+dearpygui==2.0.0
+lxml==5.4.0
+pillow==11.2.1
+python-docx==1.1.2
+typing_extensions==4.13.2
