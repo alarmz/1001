@@ -82,6 +82,13 @@ class docx1001:
             self.cursor.execute(SQL, (imgData, ))
             self.conn.commit()
             
+    def Insert_Image_to_DB_Special_CASEA(self, sWord, imgData):
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'Font_Dual', 0, ?)"
+        isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
+        if (isExists == None):        
+            self.cursor.execute(SQL, (imgData, ))
+            self.conn.commit()    
+            
     def Insert_Image_to_DB_CASE_B(self, sWord, imgData):
         SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 1, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
@@ -119,6 +126,15 @@ class docx1001:
         binary_data = self.convert_to_binary_data(file_name)
         self.Insert_Image_to_DB(run.text, binary_data)        
         
+    def CASE_Special_A_Need_Highlight_Hard_dual_sound(self, index, para, run):
+        #a3差異字＋難字
+        ix = index + 1
+        image_blob = self.extract_image_from_run(para.runs[ix])
+        file_name = self.Save_Image(index, run.text, image_blob)
+        binary_data = self.convert_to_binary_data(file_name)
+        self.Insert_Image_to_DB_Special_CASEA(run.text, binary_data)     
+        
+        
     def CASE_B_Need_Highlight_Hard_dual_sound(self, index, para, run):
         #【字庫B】有差異但是可以忽略的字→需刪除標示
         ix = index + 1
@@ -145,10 +161,16 @@ class docx1001:
                             if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
                                 if (CASE_ABC == "CASE_A"):
                                     self.CASE_A_Need_Highlight_Hard_dual_sound(index, para, run)
+                                    print(f"Font diff {run.text}")
                                 elif (CASE_ABC == "CASE_B"):
                                     self.CASE_B_Need_Highlight_Hard_dual_sound(index, para, run)
                             elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
-                                self.Insert_Sound_Words_to_DB(run.text)
+                                try:
+                                    self.CASE_Special_A_Need_Highlight_Hard_dual_sound(index, para, run)
+                                    print(f"Font + Dual {run.text}")
+                                except:
+                                    print(f"dual-sound--{run.text}")
+                                    self.Insert_Sound_Words_to_DB(run.text)
                                 
                                     
             
