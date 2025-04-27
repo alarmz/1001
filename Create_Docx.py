@@ -71,9 +71,9 @@ class CreateDocx:
                     db_res = self.Mapping_DB_and_Source(ch.strip())
                     #print(ch)  # 每次印出一個字
                     if (db_res == []):
-                        print("This is new word, not in Database.")
+                        #print("This is new word, not in Database.")
                         new_run = para.add_run(ch)
-                        new_run.font.highlight_color = WD_COLOR_INDEX.TURQUOISE  
+                        #new_run.font.highlight_color = WD_COLOR_INDEX.TURQUOISE  
                         new_runs.append(new_run)                        
                     else:
                         #ID = db_res[0]["ID"]
@@ -89,7 +89,16 @@ class CreateDocx:
                             image_stream = BytesIO(db_res[0]["imgData"])
                             run_after_img.add_picture(image_stream, width=Inches(0.2))
                             print(f"{ch}...")
-                            
+                        elif (db_res[0]["sType"] == "Font_Dual"):
+                            #a3差異字＋難字
+                            new_run = para.add_run(ch)
+                            new_run.font.highlight_color = WD_COLOR_INDEX.BRIGHT_GREEN  # BRIGHT_GREEN
+                            new_runs.append(new_run)
+                            # 加入圖片
+                            run_after_img = para.add_run()
+                            image_stream = BytesIO(db_res[0]["imgData"])
+                            run_after_img.add_picture(image_stream, width=Inches(0.2))
+                            print(f"{ch}...")
                         elif (db_res[0]["sType"] == "dual"):
                             new_run = para.add_run(ch)
                             new_run.font.highlight_color = WD_COLOR_INDEX.BRIGHT_GREEN
