@@ -56,9 +56,9 @@ class docx1001:
             print(sFileFull_Path)
             #self.OpenDocx_ReadWords_by_Words(sFileFull_Path)
             if ("字庫A.docx" in sFileFull_Path):
-                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path, "CASE_A")
+                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path)
             elif ("字庫B.docx" in sFileFull_Path):
-                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path, "CASE_B")
+                self.OpenDocx_Read_Table_Data_From_Docx(sFileFull_Path)
             #break
             #call process open document
             
@@ -118,8 +118,10 @@ class docx1001:
             self.cursor.execute(SQL)
             self.conn.commit()
             
-    def CASE_A_Need_Highlight_Hard_dual_sound(self, index, para, run):
-        #【字庫A】要標的差異字/難字/破音字
+    def CASE_A_Need_Highlight_Hard(self, index, para, run):
+        #●	a1差異字（黃底＋截圖）編號1-編號43
+        #●	a2差異字（待考究，黃底＋截圖）編號1-編號4
+
         ix = index + 1
         image_blob = self.extract_image_from_run(para.runs[ix])
         file_name = self.Save_Image(index, run.text, image_blob)
@@ -135,21 +137,16 @@ class docx1001:
         self.Insert_Image_to_DB_Special_CASEA(run.text, binary_data)     
         
         
-    def CASE_B_Need_Highlight_Hard_dual_sound(self, index, para, run):
+    def CASE_B_Need_Highlight_OK_Ignore(self, index, para, run):
         #【字庫B】有差異但是可以忽略的字→需刪除標示
         ix = index + 1
         image_blob = self.extract_image_from_run(para.runs[ix])
-        try:
-            file_name = self.Save_Image(index, run.text, image_blob)
-            binary_data = self.convert_to_binary_data(file_name)
-        except:
-            print("!!!!!!!!!!")
-            print(run.text)
-        
+        file_name = self.Save_Image(index, run.text, image_blob)
+        binary_data = self.convert_to_binary_data(file_name)
         self.Insert_Image_to_DB_CASE_B(run.text, binary_data)      
 
             
-    def OpenDocx_Read_Table_Data_From_Docx(self, sFileFull_Path, CASE_ABC):
+    def OpenDocx_Read_Table_Data_From_Docx(self, sFileFull_Path):
         document = Document(sFileFull_Path)
         for table in document.tables:
             for row in table.rows:
@@ -159,11 +156,11 @@ class docx1001:
                             text = run.text.strip()
                             if (not text): continue
                             if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
-                                if (CASE_ABC == "CASE_A"):
-                                    self.CASE_A_Need_Highlight_Hard_dual_sound(index, para, run)
-                                    print(f"Font diff {run.text}")
-                                elif (CASE_ABC == "CASE_B"):
-                                    self.CASE_B_Need_Highlight_Hard_dual_sound(index, para, run)
+                                self.CASE_A_Need_Highlight_Hard(index, para, run)
+                                print(f"Font diff {run.text}")
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.TURQUOISE):
+                                self.CASE_B_Need_Highlight_OK_Ignore(index, para, run)
+                                print(f"Font diff, OK for Ignore {run.text}")
                             elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
                                 try:
                                     self.CASE_Special_A_Need_Highlight_Hard_dual_sound(index, para, run)
