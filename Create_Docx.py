@@ -80,7 +80,7 @@ class CreateDocx:
                         if (db_res[0]["sType"] == "normal"):
                             new_run = para.add_run(ch)
                             new_runs.append(new_run)
-                        elif (db_res[0]["sType"] == "FontType"):
+                        elif (db_res[0]["sType"] == "FontType") and (db_res[0]["isIgnore"] == 0):
                             new_run = para.add_run(ch)
                             new_run.font.highlight_color = WD_COLOR_INDEX.YELLOW  # 黃色 Highlight
                             new_runs.append(new_run)
@@ -89,6 +89,10 @@ class CreateDocx:
                             image_stream = BytesIO(db_res[0]["imgData"])
                             run_after_img.add_picture(image_stream, width=Inches(0.2))
                             print(f"{ch}...")
+                        elif (db_res[0]["sType"] == "FontType") and (db_res[0]["isIgnore"] == 1):
+                            new_run = para.add_run(ch)
+                            new_run.font.highlight_color = WD_COLOR_INDEX.TURQUOISE  # TURQUOISE
+                            new_runs.append(new_run)
                         elif (db_res[0]["sType"] == "Font_Dual"):
                             #a3差異字＋難字
                             new_run = para.add_run(ch)
