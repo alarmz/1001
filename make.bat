@@ -1,0 +1,1 @@
+pyinstaller --onefile --icon=icon.ico DB_mgr_GUI.py

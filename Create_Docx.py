@@ -130,8 +130,8 @@ class CreateDocx:
             #Open Docx
             self.Process_Docx_Word_by_word(sDocxTextPath)
             #Loop every words to mapping database 
-            
-            pass
+            return sDocxTextPath
+
     
     
     

@@ -4,4 +4,4 @@ __pycache__/
 venv312/
 Image_Font/
 dist/
-build/
+build/*
