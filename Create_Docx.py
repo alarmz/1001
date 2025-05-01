@@ -12,6 +12,7 @@ class CreateDocx:
         self.conn = sqlite3.connect("word_data.db")
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
+        self.text_files = []
         pass
     
     def Search_in_Database(self, src_word):
@@ -33,7 +34,10 @@ class CreateDocx:
             doc.add_paragraph(line.strip())
             
         sFileName = sFileName.replace("txt", "docx")
-        docxFileName = os.path.join(os.getcwd(), "stage1_processed", sFileName)
+        stage1_processed =  os.path.join(os.getcwd(), "stage1_processed")
+        if (os.path.exists(stage1_processed) == False):
+            os.makedirs(stage1_processed)        
+        docxFileName = os.path.join(stage1_processed, sFileName)
         sDocxTextPath = os.path.join(sPath, docxFileName)
         doc.save(sDocxTextPath)
         return sDocxTextPath
@@ -117,6 +121,8 @@ class CreateDocx:
     def Loop_Text_Files_Create_Docx(self):
         for aTxt in self.text_files:
             sFileFull_Path = os.path.join(os.getcwd(), "source_text")
+            if (os.path.exists(sFileFull_Path) == False):
+                os.makedirs(sFileFull_Path)            
             sDocxTextPath = self.Save_Text_to_Docx(sFileFull_Path, aTxt)
             
             #print(f"process=> {sFileFull_Path}")

@@ -65,8 +65,11 @@ class docx1001:
     def Save_Image(self, index, sRun, image_blob):
         sFile = ''.join(random.sample(self.pool, 8))
         file_name = ""
+        Image_Font = os.path.join(os.getcwd(), "Image_Font")
+        if (os.path.exists(Image_Font) == False):
+            os.makedirs(Image_Font)        
         if image_blob:
-            file_name = os.path.join(os.getcwd(), "Image_Font", f"{sFile}_{sRun}.jpg")
+            file_name = os.path.join(Image_Font, f"{sFile}_{sRun}.jpg")
             with open(file_name, "wb") as f:
                 f.write(image_blob)
         return file_name
@@ -97,8 +100,6 @@ class docx1001:
             self.conn.commit()    
         
     def dbCheck_Exist_B4_Insert(self, sTable, sWord):
-        if (sWord == "覩"):
-            print("覩覩覩")
         self.cursor.execute(f"SELECT * FROM {sTable} WHERE sWord = ?", (sWord,))
         return self.cursor.fetchone()
         

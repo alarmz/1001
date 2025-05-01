@@ -1,244 +1,139 @@
-import sqlite3
 import sys
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage, QPixmap, QFont
-from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, 
-                               QCheckBox, QLineEdit, QPushButton, QHBoxLayout, QDialog, QFormLayout, QDialogButtonBox, 
-                               QLabel, QVBoxLayout)
-import base64
-import binascii
-from PySide6.QtGui import QClipboard
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
+    QDialog, QDialogButtonBox, QFormLayout, QLineEdit, QFileDialog, QMessageBox
+)
 
-# Connect to SQLite DB
-db_path = 'word_data.db'  # Replace with the path to your SQLite database
+from PreProcess import docx1001
+from Create_Docx import  CreateDocx
 
-def fetch_data(search_term=""):
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-    query = "SELECT ID, sWord, sType, isIgnore, imgData FROM Word WHERE sWord LIKE ?"
-    cursor.execute(query, ('%' + search_term + '%',))
-    data = cursor.fetchall()
-    connection.close()
-    return data
-
-def fetch_sType():
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-    cursor.execute("SELECT DISTINCT sType FROM Word")
-    sTypes = [row[0] for row in cursor.fetchall()]
-    connection.close()
-    return sTypes
-
-def handle_img_data(img_data):
-    try:
-        # If the data is base64, decode it
-        decoded_data = base64.b64decode(img_data)
-        img = QImage.fromData(decoded_data)
-        if img.isNull():
-            raise ValueError("Decoded image is null or invalid")
-        return img
-    except (binascii.Error, ValueError):
-        img = QImage()
-        img.loadFromData(img_data)
-        if img.isNull():
-            raise ValueError("Invalid image data")
-        return img
-
-def add_data(sWord, sType, isIgnore, imgData=None):
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-    cursor.execute("INSERT INTO Word (sWord, sType, isIgnore, imgData) VALUES (?, ?, ?, ?)",
-                   (sWord, sType, isIgnore, imgData))
-    connection.commit()
-    connection.close()
-
-def update_data(ID, sWord, sType, isIgnore, imgData=None):
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-    cursor.execute("UPDATE Word SET sWord=?, sType=?, isIgnore=?, imgData=? WHERE ID=?",
-                   (sWord, sType, isIgnore, imgData, ID))
-    connection.commit()
-    connection.close()
-
-def delete_data(ID):
-    connection = sqlite3.connect(db_path)
-    cursor = connection.cursor()
-    cursor.execute("DELETE FROM Word WHERE ID=?", (ID,))
-    connection.commit()
-    connection.close()
-
-class AddRecordDialog(QDialog):
+class SubDialogA(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Add New Record")
-        self.setFixedSize(400, 300)
+        self.setWindowTitle("功能A - 建立或更新資料庫")
+        self.setFixedSize(400, 200)
+
+        self.file_path_input = QLineEdit()
+        btn_select_file = QPushButton("選擇檔案")
+        btn_select_file.clicked.connect(self.select_file)
+
+        btn_execute = QPushButton("確定執行")
+        btn_execute.clicked.connect(self.execute_action)
 
         layout = QFormLayout()
-
-        self.sWord_input = QLineEdit(self)
-        layout.addRow("sWord:", self.sWord_input)
-
-        self.sType_combo = QComboBox(self)
-        self.sType_combo.addItems(fetch_sType())
-        layout.addRow("sType:", self.sType_combo)
-
-        self.isIgnore_checkbox = QCheckBox("Ignore", self)
-        layout.addRow(self.isIgnore_checkbox)
-
-        self.img_preview = QLabel(self)
-        self.img_preview.setText("Paste an image (from clipboard) if needed")
-        layout.addRow("Image Preview:", self.img_preview)
-
-        # Clipboard handling
-        clipboard = QApplication.clipboard()
-        if clipboard.mimeData().hasImage():
-            img = clipboard.image()
-            self.img_preview.setPixmap(QPixmap(img).scaled(128, 128, Qt.KeepAspectRatio))
-
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        layout.addRow("檔案路徑：", self.file_path_input)
+        layout.addRow(btn_select_file, btn_execute)
 
         self.setLayout(layout)
 
-    def get_data(self):
-        return {
-            "sWord": self.sWord_input.text(),
-            "sType": self.sType_combo.currentText(),
-            "isIgnore": 1 if self.isIgnore_checkbox.isChecked() else 0,
-            "imgData": None  # You can implement clipboard image data handling if needed
-        }
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "選擇 Word 文件",
+            "",
+            "Word 文件 (*.docx)"
+        )
+        if file_path:
+            self.file_path_input.setText(file_path)
 
-class WordTableApp(QWidget):
+    def execute_action(self):
+        file_path = self.file_path_input.text()
+        if not file_path:
+            QMessageBox.warning(self, "錯誤", "請先選擇一個 .docx 檔案")
+            return
+        doc101 =  docx1001()
+        doc101.docx_files.append(file_path)
+        doc101.OpenAll_PreProcess_Files()
+        QMessageBox.information(self, "執行", f"已選擇檔案：\n{file_path}")
+        self.accept()
+
+
+class SubDialogB(QDialog):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("功能B - 從 txt 建立 Docx 文件")
+        self.setFixedSize(400, 200)
 
-        self.setWindowTitle("Word Table")
-        self.setFixedSize(800, 800)
+        self.file_path_input = QLineEdit()
+        btn_select_file = QPushButton("選擇檔案")
+        btn_select_file.clicked.connect(self.select_file)
 
-        # Layout
-        layout = QVBoxLayout()
+        btn_execute = QPushButton("確定執行")
+        btn_execute.clicked.connect(self.execute_action)
 
-        # Search Box
-        self.search_box = QLineEdit(self)
-        self.search_box.setPlaceholderText("Search by sWord...")
-        self.search_box.textChanged.connect(self.update_table)
-        layout.addWidget(self.search_box)
-
-        # Table
-        self.table = QTableWidget(self)
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["ID", "sWord", "sType", "isIgnore", "imgData"])
-        layout.addWidget(self.table)
-
-        # Set row height and style
-        font = QFont()
-        font.setPointSize(24)
-        self.table.setFont(font)
-
-        header = self.table.horizontalHeader()
-        header.setFont(QFont("Arial", 12, QFont.Bold))
-
-        # Add, Update, and Delete Buttons
-        button_layout = QHBoxLayout()
-
-        self.add_button = QPushButton("Add", self)
-        self.add_button.clicked.connect(self.show_add_dialog)
-        button_layout.addWidget(self.add_button)
-
-        self.delete_button = QPushButton("Delete", self)
-        self.delete_button.clicked.connect(self.delete_row)
-        button_layout.addWidget(self.delete_button)
-
-        self.update_button = QPushButton("Update", self)
-        self.update_button.clicked.connect(self.update_row)
-        button_layout.addWidget(self.update_button)
-
-        layout.addLayout(button_layout)
-
-        # Initial Table Population
-        self.update_table()
+        layout = QFormLayout()
+        layout.addRow("檔案路徑：", self.file_path_input)
+        layout.addRow(btn_select_file, btn_execute)
 
         self.setLayout(layout)
 
-    def update_table(self):
-        search_term = self.search_box.text()
-        data = fetch_data(search_term)
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "選擇文字檔案",
+            "",
+            "文字檔案 (*.txt)"
+        )
+        if file_path:
+            self.file_path_input.setText(file_path)
 
-        self.table.setRowCount(len(data))
+    def execute_action(self):
+        file_path = self.file_path_input.text()
+        if not file_path:
+            QMessageBox.warning(self, "錯誤", "請先選擇一個 .txt 檔案")
+            return
+        docx =  CreateDocx()
+        docx.text_files.append(file_path)
+        Loop_Text_Files_Create_Docx = docx.Loop_Text_Files_Create_Docx()
+        print(f"Export File: {Loop_Text_Files_Create_Docx}")
+        note = f" 匯出檔案到: {Loop_Text_Files_Create_Docx}"
+        QMessageBox.information(self, "執行", f"已選擇檔案：\n{file_path}\n\n{note}")
+        self.accept()
 
-        # Fetch sTypes for ComboBox
-        sTypes = fetch_sType()
 
-        for row_idx, row_data in enumerate(data):
-            # ID Column
-            self.table.setItem(row_idx, 0, QTableWidgetItem(str(row_data[0])))
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("師兄功能選單")
+        self.setFixedSize(400, 250)
 
-            # sWord Column (center-aligned)
-            item = QTableWidgetItem(row_data[1])
-            item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(row_idx, 1, item)
+        layout = QVBoxLayout()
+        label = QLabel("****師兄您想要做什麼?****")
+        layout.addWidget(label)
 
-            # sType Column (ComboBox)
-            combo_box = QComboBox()
-            combo_box.addItems(sTypes)  # Populate with sType values from database
-            combo_box.setCurrentText(row_data[2])
-            self.table.setCellWidget(row_idx, 2, combo_box)
+        btn_a = QPushButton("A. 建立或是更新資料庫 / 字庫A 或是字庫B")
+        btn_a.clicked.connect(self.open_a)
+        layout.addWidget(btn_a)
 
-            # isIgnore Column (Checkbox, center-aligned)
-            checkbox = QCheckBox()
-            checkbox.setChecked(bool(row_data[3]))
+        btn_b = QPushButton("B. 從 txt 文字檔建立 Docx 文件")
+        btn_b.clicked.connect(self.open_b)
+        layout.addWidget(btn_b)
 
-            # Create a QWidget to hold the checkbox and align it properly
-            widget = QWidget()
-            layout = QHBoxLayout(widget)
-            layout.setAlignment(Qt.AlignCenter)  # Center-align the checkbox
-            layout.addWidget(checkbox)
-            widget.setLayout(layout)
+        btn_c = QPushButton("C. 掃描既有的Docx 比對字庫B移除")
+        btn_c.clicked.connect(lambda: self.open_sub_dialog("功能C", "這裡是比對字庫B 移除 Docx 字"))
+        layout.addWidget(btn_c)
 
-            self.table.setCellWidget(row_idx, 3, widget)
+        self.setLayout(layout)
 
-            # imgData Column (Image)
-            img_data = row_data[4]
-            if img_data:
-                img = handle_img_data(img_data)
-                img_pixmap = QPixmap(img)
-                img_label = QTableWidgetItem()
-                self.table.setItem(row_idx, 4, img_label)
-                img_label.setData(Qt.DecorationRole, img_pixmap)
+    def open_a(self):
+        dialog = SubDialogA()
+        dialog.exec()
 
-            # Set row height to 128 for each row
-            self.table.setRowHeight(row_idx, 128)
+    def open_b(self):
+        dialog = SubDialogB()
+        dialog.exec()
 
-    def show_add_dialog(self):
-        dialog = AddRecordDialog()
-        if dialog.exec() == QDialog.Accepted:
-            data = dialog.get_data()
-            add_data(data["sWord"], data["sType"], data["isIgnore"], data["imgData"])
-            self.update_table()
+    def open_sub_dialog(self, title, content):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(content))
+        dialog.setLayout(layout)
+        dialog.exec()
 
-    def delete_row(self):
-        selected_row = self.table.currentRow()
-        if selected_row >= 0:
-            ID = self.table.item(selected_row, 0).text()
-            delete_data(ID)
-            self.update_table()
-
-    def update_row(self):
-        selected_row = self.table.currentRow()
-        if selected_row >= 0:
-            ID = self.table.item(selected_row, 0).text()
-            sWord = self.table.item(selected_row, 1).text()
-            sType = self.table.cellWidget(selected_row, 2).currentText()
-            isIgnore = self.table.cellWidget(selected_row, 3).isChecked()
-            # Here, you can also get imgData if needed
-            imgData = None  # Replace with actual imgData if available
-            update_data(ID, sWord, sType, isIgnore, imgData)
-            self.update_table()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = WordTableApp()
+    window = MainWindow()
     window.show()
     sys.exit(app.exec())
