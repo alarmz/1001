@@ -5,3 +5,12 @@ venv312/
 Image_Font/
 dist/
 build/*
+build/DB_mgr_GUI/
+build/DB_mgr_GUI/Analysis-00.toc     
+build/DB_mgr_GUI/DB_mgr_GUI.pkg      
+build/DB_mgr_GUI/EXE-00.toc          
+build/DB_mgr_GUI/PKG-00.toc          
+build/DB_mgr_GUI/PYZ-00.pyz          
+build/DB_mgr_GUI/base_library.zip    
+build/DB_mgr_GUI/xref-DB_mgr_GUI.html
+dist/DB_mgr_GUI.exe                  
