@@ -3,3 +3,5 @@ __pycache__/
 .env
 venv312/
 Image_Font/
+dist/
+build/
