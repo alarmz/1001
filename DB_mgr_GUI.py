@@ -1,11 +1,13 @@
 import sys
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
-    QDialog, QDialogButtonBox, QFormLayout, QLineEdit, QFileDialog, QMessageBox
+    QDialog, QFormLayout, QLineEdit, QFileDialog, QMessageBox
 )
 
 from PreProcess import docx1001
 from Create_Docx import  CreateDocx
+from Scan_Exists_Docx import Scan_Exists_Docx
+import os
 
 class SubDialogA(QDialog):
     def __init__(self):
@@ -91,6 +93,54 @@ class SubDialogB(QDialog):
         self.accept()
 
 
+class SubDialogC(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("功能C - 比對字庫B移除 Docx 字")
+        self.setFixedSize(500, 250)
+
+        self.input1 = QLineEdit()
+        self.input2 = QLineEdit()
+        self.input3 = QLineEdit()
+
+        btn_select_file = QPushButton("選擇檔案")
+        btn_select_file.clicked.connect(self.select_file)
+
+        btn_execute = QPushButton("執行")
+        btn_execute.clicked.connect(self.execute_action)
+
+        layout = QFormLayout()
+        layout.addRow("要掃描的目標檔案：", self.input1)
+        layout.addRow("等待審核的差異字：", self.input2)
+        layout.addRow("等待審核的破音/難字：", self.input3)
+        layout.addRow(btn_select_file, btn_execute)
+
+        self.setLayout(layout)
+
+    def select_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "選擇 Word 文件",
+            "",
+            "Word 文件 (*.docx)"
+        )
+        if file_path:
+            self.input1.setText(file_path)
+
+    def execute_action(self):
+        file1 = self.input1.text()
+        if not file1:
+            QMessageBox.warning(self, "錯誤", "請選擇檔案")
+            return
+        # 執行你的處理邏輯 (可替換以下內容)
+        docx = Scan_Exists_Docx()
+        docx.docx_files.append(file1)
+        docx.OpenAll_PreProcess_Files()
+        self.input2.setText(os.path.join(os.getcwd(), docx.A_Font_todo_File))
+        self.input3.setText(os.path.join(os.getcwd(), docx.A_Dual_sound_todo_File))
+        QMessageBox.information(self, "執行完成", f"要掃描的目標檔案: {self.input1.text()}\n等待審核的差異字: {self.input2.text()}\n等待審核的破音/難字: {self.input3.text()}")
+        self.accept()
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -124,11 +174,7 @@ class MainWindow(QWidget):
         dialog.exec()
 
     def open_sub_dialog(self, title, content):
-        dialog = QDialog(self)
-        dialog.setWindowTitle(title)
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel(content))
-        dialog.setLayout(layout)
+        dialog = SubDialogC()
         dialog.exec()
 
 
