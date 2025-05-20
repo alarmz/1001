@@ -102,7 +102,7 @@ class Scan_Exists_Docx:
         self.cursor.execute(f"SELECT * FROM {sTable} WHERE sWord = ?", (sWord,))
         return self.cursor.fetchone()
     def dbCheck_Font_ok_for_Ignore(self, sWord):
-        SQL = f"Select * FROM [Word] WHERE isIgnore = 1 and sWord = '{sWord}'"
+        SQL = f"Select * FROM [Word] WHERE isIgnore = 0 and sWord = '{sWord}'"
         self.cursor.execute(SQL)
         return self.cursor.fetchone()
     
