@@ -102,9 +102,14 @@ class Scan_Exists_Docx:
         self.cursor.execute(f"SELECT * FROM {sTable} WHERE sWord = ?", (sWord,))
         return self.cursor.fetchone()
     def dbCheck_Font_ok_for_Ignore(self, sWord):
-        SQL = f"Select * FROM [Word] WHERE isIgnore = 0 and sWord = '{sWord}'"
+        SQL = f"Select * FROM [Word] WHERE isIgnore = 1 and sWord = '{sWord}'"
         self.cursor.execute(SQL)
         return self.cursor.fetchone()
+    
+    def dbCheck_Font_ok_for_Yellow(self, sWord):
+        SQL = f"Select * FROM [Word] WHERE isIgnore = 0 and sWord = '{sWord}'"
+        self.cursor.execute(SQL)
+        return self.cursor.fetchone()    
     
     def dbCheck_Dual_Sound_Exists(self, sWord):
         SQL = f"Select * FROM [Word] WHERE sType = 'dual' and sWord = '{sWord}'"
@@ -269,18 +274,22 @@ class Scan_Exists_Docx:
                 hl_color = self.get_highlight_color(run)
                 if hl_color == "yellow":
                     Ignore_word = self.dbCheck_Font_ok_for_Ignore(run.text)
+                    User_Mark_as_Yellow = self.dbCheck_Font_ok_for_Yellow(run.text)
                     if (Ignore_word != None):
                         self.highlight_run(run, WD_COLOR_INDEX.TURQUOISE)
-                    else:
+                    elif (User_Mark_as_Yellow == None):#can not find in DB
                         ix = index + 1
                         image_blob = self.extract_image_from_run(para.runs[ix])
                         file_name = self.Save_Image(index, run.text, image_blob)
                         binary_data = self.convert_to_binary_data(file_name)                        
                         self.Insert_Record_A_Font_todo(run.text, binary_data)
+                    else:
+                        pass
                 elif (hl_color == "green"):
-                    dual_sound = self.dbCheck_Dual_Sound_Exists(run.text)
-                    if (dual_sound != None): continue
-                    self.Insert_Record_A_Dual_todo(run.text)
+                    for aWord in run.text:
+                        dual_sound = self.dbCheck_Dual_Sound_Exists(aWord)
+                        if (dual_sound != None): continue
+                        self.Insert_Record_A_Dual_todo(aWord)
                     
                         
                         
