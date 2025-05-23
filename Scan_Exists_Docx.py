@@ -182,7 +182,34 @@ class Scan_Exists_Docx:
                                     print(f"dual-sound--{run.text}")
                                     self.Insert_Sound_Words_to_DB(run.text)
                                 
-                                    
+
+    def A001_Hop_OpenDocx_Read_Table_Data_From_Docx(self, sFileFull_Path):
+        #open exists docx file, verify yellow or blue, 
+        #make sure bleu from db B and Yellow from DB A
+        document = Document(sFileFull_Path)
+        for table in document.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        for index, run in enumerate(para.runs):
+                            text = run.text.strip()
+                            if (not text): continue
+                            if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
+                                self.CASE_A_Need_Highlight_Hard(index, para, run)
+                                print(f"Font diff {run.text}")
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.TURQUOISE):
+                                self.CASE_B_Need_Highlight_OK_Ignore(index, para, run)
+                                print(f"Font diff, OK for Ignore {run.text}")
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
+                                try:
+                                    self.CASE_Special_A_Need_Highlight_Hard_dual_sound(index, para, run)
+                                    print(f"Font + Dual {run.text}")
+                                except:
+                                    print(f"dual-sound--{run.text}")
+                                    self.Insert_Sound_Words_to_DB(run.text)
+
+
+
     def Create_Docx_if_not_Exists(self, sDocxFile_Path):
         if (os.path.exists(sDocxFile_Path) == True):
             if ("A_Font_todo" in sDocxFile_Path):
@@ -290,12 +317,8 @@ class Scan_Exists_Docx:
                         dual_sound = self.dbCheck_Dual_Sound_Exists(aWord)
                         if (dual_sound != None): continue
                         self.Insert_Record_A_Dual_todo(aWord)
-                    
-                        
-                        
-                    
+
         docx.save(sFileFull_Path)
-               
         self.A_Font_todo.save(self.A_Font_todo_File)
         self.A_Dual_sound_todo.save(self.A_Dual_sound_todo_File)
         print(os.path.join(os.getcwd(), self.A_Font_todo_File))
