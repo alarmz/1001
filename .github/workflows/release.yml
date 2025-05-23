@@ -5,7 +5,7 @@ on:
     types: [created]
 
 permissions:
-  types: [created]
+    contents: write
   
 jobs:
   build-windows:
