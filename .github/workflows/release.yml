@@ -4,6 +4,9 @@ on:
   release:
     types: [created]
 
+permissions:
+  types: [created]
+  
 jobs:
   build-windows:
     runs-on: windows-latest
