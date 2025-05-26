@@ -5,13 +5,17 @@ on:
     types: [created]
 
 permissions:
-    contents: write
-  
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,14 +25,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pyinstaller
 
+      - name: Write version to version.py
+        run: echo "__version__ = '${{ steps.version.outputs.version }}'" > version.py
+
       - name: Build Windows EXE
         run: |
-          pyinstaller DB_mgr_GUI.py --onefile --windowed --icon=icon.ico
+          pyinstaller DB_mgr_GUI.py --onefile --windowed --icon=icon.ico --name DB_mgr_GUI_${{ steps.version.outputs.version }}
 
       - name: Upload Windows EXE to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/DB_mgr_GUI.exe
+          files: dist/DB_mgr_GUI_${{ steps.version.outputs.version }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -37,20 +44,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Write version to version.py
+        run: echo "__version__ = '${{ steps.version.outputs.version }}'" > version.py
+
       - name: Zip source code
-        run: zip -r source_code.zip . -x '*.git*' '*.github*' '__pycache__/*'
+        run: zip -r source_code_${{ steps.version.outputs.version }}.zip . -x '*.git*' '*.github*' '__pycache__/*'
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: source_code.zip
+          files: source_code_${{ steps.version.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -60,17 +78,37 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt pyinstaller
 
-      - name: Build macOS App
-        run: |
-          pyinstaller DB_mgr_GUI.py --windowed --icon=icon.icns --name DBMgrGUI
+      - name: Write version to version.py
+        run: echo "__version__ = '${{ steps.version.outputs.version }}'" > version.py
 
-      - name: Create DMG
+      - name: Build Intel binary
         run: |
-          hdiutil create -volname DBMgrGUI -srcfolder dist/DBMgrGUI.app -ov -format UDZO DBMgrGUI.dmg
+          arch -x86_64 python3 -m PyInstaller DB_mgr_GUI.py --windowed --icon=icon.icns --name DBMgrGUI_x86
+        env:
+          ARCHFLAGS: "-arch x86_64"
+
+      - name: Build ARM binary
+        run: |
+          arch -arm64 python3 -m PyInstaller DB_mgr_GUI.py --windowed --icon=icon.icns --name DBMgrGUI_arm
+        env:
+          ARCHFLAGS: "-arch arm64"
+
+      - name: Create Universal Binary
+        run: |
+          mkdir -p dist/universal
+          lipo -create dist/DBMgrGUI_x86/DBMgrGUI_x86 dist/DBMgrGUI_arm/DBMgrGUI_arm -output dist/universal/DBMgrGUI
+
+      - name: Package Universal .app and DMG
+        run: |
+          mkdir -p dist/DBMgrGUI.app/Contents/MacOS
+          mkdir -p dist/DBMgrGUI.app/Contents/Resources
+          cp dist/universal/DBMgrGUI dist/DBMgrGUI.app/Contents/MacOS/DBMgrGUI
+          cp icon.icns dist/DBMgrGUI.app/Contents/Resources/icon.icns
+          hdiutil create -volname DBMgrGUI-${{ steps.version.outputs.version }} -srcfolder dist/DBMgrGUI.app -ov -format UDZO DBMgrGUI_${{ steps.version.outputs.version }}.dmg
 
       - name: Upload macOS DMG to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: DBMgrGUI.dmg
+          files: DBMgrGUI_${{ steps.version.outputs.version }}.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
