@@ -308,6 +308,8 @@ class Scan_Exists_Docx:
                         ix = index + 1
                         image_blob = self.extract_image_from_run(para.runs[ix])
                         file_name = self.Save_Image(index, run.text, image_blob)
+                        if (file_name == ''):
+                            continue
                         binary_data = self.convert_to_binary_data(file_name)                        
                         self.Insert_Record_A_Font_todo(run.text, binary_data)
                     else:
