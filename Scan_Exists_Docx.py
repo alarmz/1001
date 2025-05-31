@@ -298,6 +298,7 @@ class Scan_Exists_Docx:
         self.Create_Todo_Files()
         for para in docx.paragraphs:
             for index, run in enumerate(para.runs):
+                if (run.text == ''): continue
                 hl_color = self.get_highlight_color(run)
                 if hl_color == "yellow":
                     Ignore_word = self.dbCheck_Font_ok_for_Ignore(run.text)
