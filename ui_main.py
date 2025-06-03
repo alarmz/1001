@@ -2,6 +2,7 @@ from nicegui import ui, app
 from pathlib import Path
 import uuid
 import os
+import traceback
 
 from core import get_user_session, DocumentProcessor, TEMP_DIR
 
@@ -110,6 +111,7 @@ def render_docx_analysis_tab(session):
             except Exception as ex:
                 upload_result.text = f'❌ 處理失敗: {str(ex)}'
                 upload_result.classes('text-red-600')
+                traceback.print_exc()    
 
         ui.label('選擇 docx 文件上傳:')
         ui.upload(

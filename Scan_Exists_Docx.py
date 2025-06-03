@@ -327,7 +327,35 @@ class Scan_Exists_Docx:
         print(os.path.join(os.getcwd(), self.A_Font_todo_File))
         print(os.path.join(os.getcwd(), self.A_Dual_sound_todo_File))
 
+    def OpenDocx_ReadWords_by_Words_web(self, sFileFull_Path):
+        docx = Document(sFileFull_Path)
+        for para in docx.paragraphs:
+            for index, run in enumerate(para.runs):
+                if (run.text == ''): continue
+                hl_color = self.get_highlight_color(run)
+                if hl_color == "yellow":
+                    Ignore_word = self.dbCheck_Font_ok_for_Ignore(run.text)
+                    User_Mark_as_Yellow = self.dbCheck_Font_ok_for_Yellow(run.text)
+                    if (Ignore_word != None):
+                        self.highlight_run(run, WD_COLOR_INDEX.TURQUOISE)
+                    elif (User_Mark_as_Yellow == None):#can not find in DB
+                        ix = index + 1
+                        image_blob = self.extract_image_from_run(para.runs[ix])
+                        file_name = self.Save_Image(index, run.text, image_blob)
+                        if (file_name == ''):
+                            continue
+                        binary_data = self.convert_to_binary_data(file_name)                        
+                        self.Insert_Record_A_Font_todo(run.text, binary_data)
+                    else:
+                        pass
+                elif (hl_color == "green"):
+                    for aWord in run.text:
+                        dual_sound = self.dbCheck_Dual_Sound_Exists(aWord)
+                        if (dual_sound != None): continue
+                        self.Insert_Record_A_Dual_todo(aWord)
 
+        docx.save(sFileFull_Path)
+        
 
 
 

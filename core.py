@@ -8,6 +8,7 @@ import re
 from docx import Document
 
 from Create_Docx import  CreateDocx
+from Scan_Exists_Docx import Scan_Exists_Docx
 
 TEMP_DIR = Path(tempfile.gettempdir()) / "nicegui_docs"
 TEMP_DIR.mkdir(exist_ok=True)
@@ -89,55 +90,17 @@ class DocumentProcessor:
 
     @staticmethod
     def process_docx_file(filepath: str) -> tuple:
-        doc = Document(filepath)
-        full_text = [para.text for para in doc.paragraphs]
-        text_content = '\n'.join(full_text)
-
-        polyphones = DocumentProcessor.find_polyphones(text_content)
-        polyphone_doc = Document()
-        polyphone_doc.add_heading('破音字檢查報告', 0)
-        if polyphones:
-            for item in polyphones:
-                polyphone_doc.add_heading(f'破音字: {item["char"]}', level=1)
-                polyphone_doc.add_paragraph(f'可能讀音: {", ".join(item["pronunciations"])}')
-                polyphone_doc.add_paragraph('出現位置:')
-                for pos in item['positions']:
-                    p = polyphone_doc.add_paragraph()
-                    p.add_run(f'位置 {pos["position"]}: ').bold = True
-                    context = pos['context']
-                    idx = pos['char_index']
-                    p.add_run(context[:idx])
-                    highlight = p.add_run(context[idx])
-                    highlight.bold = True
-                    p.add_run(context[idx+1:])
-        else:
-            polyphone_doc.add_paragraph('未發現破音字。')
-
-        variants = DocumentProcessor.find_variants(text_content)
-        variant_doc = Document()
-        variant_doc.add_heading('異體字檢查報告', 0)
-        if variants:
-            for item in variants:
-                variant_doc.add_heading(f'異體字: {item["variant"]} → {item["standard"]}', level=1)
-                variant_doc.add_paragraph('出現位置:')
-                for pos in item['positions']:
-                    p = variant_doc.add_paragraph()
-                    p.add_run(f'位置 {pos["position"]}: ').bold = True
-                    context = pos['context']
-                    idx = pos['char_index']
-                    p.add_run(context[:idx])
-                    highlight = p.add_run(item['variant'])
-                    highlight.bold = True
-                    p.add_run(context[idx+len(item['variant']):])
-                    p.add_run(f' → 建議改為: {item["standard"]}').italic = True
-        else:
-            variant_doc.add_paragraph('未發現異體字。')
-
+        docx = Scan_Exists_Docx()
+        #docx.docx_files.append(filepath)
+        docx.OpenDocx_ReadWords_by_Words_web(filepath)
+        
         polyphone_path = TEMP_DIR / f"todo_破音字_{uuid.uuid4().hex[:8]}.docx"
         variant_path = TEMP_DIR / f"todo_異體字_{uuid.uuid4().hex[:8]}.docx"
-        polyphone_doc.save(polyphone_path)
-        variant_doc.save(variant_path)
-
+        docx.A_Dual_sound_todo = Document()
+        docx.A_Font_todo = Document()        
+        docx.A_Font_todo.save(variant_path)
+        docx.A_Dual_sound_todo.save(polyphone_path)
+        
         return str(polyphone_path), str(variant_path)
 
 class UserSession:
