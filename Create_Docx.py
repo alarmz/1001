@@ -42,6 +42,16 @@ class CreateDocx:
         doc.save(sDocxTextPath)
         return sDocxTextPath
     
+    def Save_Text_to_Docx_web(self, text_content, sPath, sFileName):
+        doc = Document()
+        lines = text_content.value.splitlines()
+        for line in lines:
+            doc.add_paragraph(line.strip())
+            
+        sFileName = sFileName.replace("txt", "docx")
+        doc.save(sFileName)
+        return sFileName    
+    
     def Save_BIBO_to_temp_File(self, imgData):
         temp_img_path = ""
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_img:
@@ -131,11 +141,6 @@ class CreateDocx:
             self.Process_Docx_Word_by_word(sDocxTextPath)
             #Loop every words to mapping database 
             return sDocxTextPath
-
-    
-    
-    
-
 
 
 def main():
