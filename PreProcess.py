@@ -154,7 +154,7 @@ class docx1001:
                             if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
                                 self.CASE_A_Need_Highlight_Hard(index, para, run)
                                 print(f"Font diff {run.text}")
-                            elif (run.font.highlight_color == WD_COLOR_INDEX.TURQUOISE):
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.GRAY_25):
                                 self.CASE_B_Need_Highlight_OK_Ignore(index, para, run)
                                 print(f"Font diff, OK for Ignore {run.text}")
                             elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):

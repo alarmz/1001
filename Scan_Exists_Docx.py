@@ -171,7 +171,7 @@ class Scan_Exists_Docx:
                             if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
                                 self.CASE_A_Need_Highlight_Hard(index, para, run)
                                 print(f"Font diff {run.text}")
-                            elif (run.font.highlight_color == WD_COLOR_INDEX.TURQUOISE):
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.GRAY_25):
                                 self.CASE_B_Need_Highlight_OK_Ignore(index, para, run)
                                 print(f"Font diff, OK for Ignore {run.text}")
                             elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
@@ -197,7 +197,7 @@ class Scan_Exists_Docx:
                             if run.font.highlight_color == WD_COLOR_INDEX.YELLOW:
                                 self.CASE_A_Need_Highlight_Hard(index, para, run)
                                 print(f"Font diff {run.text}")
-                            elif (run.font.highlight_color == WD_COLOR_INDEX.TURQUOISE):
+                            elif (run.font.highlight_color == WD_COLOR_INDEX.GRAY_25):
                                 self.CASE_B_Need_Highlight_OK_Ignore(index, para, run)
                                 print(f"Font diff, OK for Ignore {run.text}")
                             elif (run.font.highlight_color == WD_COLOR_INDEX.BRIGHT_GREEN):
@@ -236,7 +236,7 @@ class Scan_Exists_Docx:
     
     def highlight_run(self, run, color):
         #new_run = para.add_run(ch)
-        run.font.highlight_color = color  # TURQUOISE
+        run.font.highlight_color = color  # GRAY_25
         #new_runs.append(new_run)        
         """
         highlight = OxmlElement('w:highlight')
@@ -303,7 +303,7 @@ class Scan_Exists_Docx:
                     Ignore_word = self.dbCheck_Font_ok_for_Ignore(run.text)
                     User_Mark_as_Yellow = self.dbCheck_Font_ok_for_Yellow(run.text)
                     if (Ignore_word != None):
-                        self.highlight_run(run, WD_COLOR_INDEX.TURQUOISE)
+                        self.highlight_run(run, WD_COLOR_INDEX.GRAY_25)
                     elif (User_Mark_as_Yellow == None):#can not find in DB
                         ix = index + 1
                         image_blob = self.extract_image_from_run(para.runs[ix])

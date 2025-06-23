@@ -77,7 +77,7 @@ class CreateDocx:
                     if (db_res == []):
                         #print("This is new word, not in Database.")
                         new_run = para.add_run(ch)
-                        #new_run.font.highlight_color = WD_COLOR_INDEX.TURQUOISE  
+                        #new_run.font.highlight_color = WD_COLOR_INDEX.GRAY_25  
                         new_runs.append(new_run)                        
                     else:
                         #ID = db_res[0]["ID"]
@@ -95,7 +95,7 @@ class CreateDocx:
                             print(f"{ch}...")
                         elif (db_res[0]["sType"] == "FontType") and (db_res[0]["isIgnore"] == 1):
                             new_run = para.add_run(ch)
-                            new_run.font.highlight_color = WD_COLOR_INDEX.TURQUOISE  # TURQUOISE
+                            new_run.font.highlight_color = WD_COLOR_INDEX.GRAY_25  # GRAY_25
                             new_runs.append(new_run)
                         elif (db_res[0]["sType"] == "Font_Dual"):
                             #a3差異字＋難字
