@@ -298,6 +298,7 @@ class Scan_Exists_Docx:
         self.Create_Todo_Files()
         for para in docx.paragraphs:
             for index, run in enumerate(para.runs):
+                if (run.text == ''): continue
                 hl_color = self.get_highlight_color(run)
                 if hl_color == "yellow":
                     Ignore_word = self.dbCheck_Font_ok_for_Ignore(run.text)
@@ -308,6 +309,8 @@ class Scan_Exists_Docx:
                         ix = index + 1
                         image_blob = self.extract_image_from_run(para.runs[ix])
                         file_name = self.Save_Image(index, run.text, image_blob)
+                        if (file_name == ''):
+                            continue
                         binary_data = self.convert_to_binary_data(file_name)                        
                         self.Insert_Record_A_Font_todo(run.text, binary_data)
                     else:
