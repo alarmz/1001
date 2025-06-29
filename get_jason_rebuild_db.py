@@ -1,9 +1,13 @@
 import requests
 import sqlite3
 import os
+import base64
+from io import BytesIO
+from PIL import Image, UnidentifiedImageError
+
 
 class WordDatabase:
-    def __init__(self, db_name="word_data2.db"):
+    def __init__(self, db_name="word_data.db"):
         self.db_name = db_name
         self._recreate_database()
 
@@ -28,30 +32,43 @@ class WordDatabase:
         self.conn.commit()
 
     def insert_record(self, record):
-        # 判斷 isIgnore 條件
         ignore_map = {
             "a1": 0, "a2": 0, "a3": 0, "a4": 0, "a5": 0,
             "b": 1
         }
         is_ignore = ignore_map.get(record.type.lower(), None)
         if is_ignore is None:
-            return  # 忽略未知類型
-
+            print(f"⛔ 忽略未知 type: {record.type}")
+            return
+    
         img_data = None
         if record.url:
+            
+            headers = {"User-Agent": "Mozilla/5.0"}
+            response = requests.get(record.url, timeout=10, headers=headers)
+            response.raise_for_status()
+        
+            img_data = response.content
+            # 驗證是否為合法圖片格式
+            Image.open(BytesIO(img_data)).verify()
             try:
-                response = requests.get(record.url, timeout=10)
-                response.raise_for_status()
-                img_data = response.content
+                pass
+                try:
+                    pass
+                except Exception as e:
+                    print(f"❌ Base64 解析失敗或圖片不合法: {record.url}，錯誤: {e}")
+                    return
+    
             except Exception as e:
-                print(f"無法下載圖片: {record.url}，錯誤: {e}")
-
+                print(f"❌ 下載圖片失敗: {record.url}，錯誤: {e}")
+                return
+    
         cursor = self.conn.cursor()
         cursor.execute('''
             INSERT INTO Word (sWord, sType, isIgnore, imgData)
             VALUES (?, ?, ?, ?)
         ''', (record.sword, record.type, is_ignore, img_data))
-        self.conn.commit()
+        self.conn.commit()    
 
     def close(self):
         self.conn.close()

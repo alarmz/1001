@@ -1,14 +1,39 @@
 import sys
-from get_jason_rebuild_db import  WordDatabase, Record, RecordFetcher
+from get_jason_rebuild_db import RecordFetcher, WordDatabase
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
     QDialog, QFormLayout, QLineEdit, QFileDialog, QMessageBox, QApplication
 )
-
+from PySide6.QtCore import QThread, Signal
 from PreProcess import docx1001
 from Create_Docx import  CreateDocx
 from Scan_Exists_Docx import Scan_Exists_Docx
-import os, time
+import os
+
+
+class DBWorkerThread(QThread):
+    status_update = Signal(str)
+    finished = Signal()
+
+    def run(self):
+        dicURL = {
+            "A": "https://tw-brand.net/%E9%96%B1%E8%97%8F%E7%B6%B2/file_fonts/A.json",
+            "B": "https://tw-brand.net/%E9%96%B1%E8%97%8F%E7%B6%B2/file_fonts/B.json"
+        }
+        db = WordDatabase()
+
+        for aURL_Key, url in dicURL.items():
+            self.status_update.emit(f"🟡 處理 {aURL_Key} 中...")
+
+            fetcher = RecordFetcher(url)
+            fetcher.fetch()
+            for rec in fetcher.records:
+                db.insert_record(rec)
+                self.status_update.emit(f"✅ {aURL_Key} ➜ ID: {rec.id}")
+
+        db.close()
+        self.status_update.emit("🎉 A/B 資料庫更新完成")
+        self.finished.emit()
 
 class SubDialogA(QDialog):
     def __init__(self):
@@ -152,9 +177,9 @@ class MainWindow(QWidget):
         self.label = QLabel("****師兄您想要做什麼?****")
         layout.addWidget(self.label)
         
-        btn_a1 = QPushButton("A1. 線上是更新資料庫字庫A/B，注意!!舊的資料庫將會被清除")
-        btn_a1.clicked.connect(self.online_upgrade_DB)
-        layout.addWidget(btn_a1)        
+        self.btn_a1 = QPushButton("A1. 線上是更新資料庫字庫A/B，注意!!舊的資料庫將會被清除")
+        self.btn_a1.clicked.connect(self.online_upgrade_DB)
+        layout.addWidget(self.btn_a1)        
 
         btn_a = QPushButton("A2. 自行下載docx 建立或是更新資料庫 / 字庫A 或是字庫B")
         btn_a.clicked.connect(self.open_a)
@@ -171,31 +196,13 @@ class MainWindow(QWidget):
         self.setLayout(layout)
         
     def online_upgrade_DB(self):
-        #print("online_upgrade_DB")
-        self.label.setText(f"****更新資料庫中****")
-        QApplication.processEvents()
-        time.sleep(1)
-        
-        url_B = "https://tw-brand.net/%E9%96%B1%E8%97%8F%E7%B6%B2/file_fonts/B.json"
-        url_A = "https://tw-brand.net/%E9%96%B1%E8%97%8F%E7%B6%B2/file_fonts/A.json"
-        dicURL = {"A": url_A, "B": url_B}
-        #urls = [url_A, url_B]
-        db = WordDatabase()
-        #for index, aURL in enumerate(urls):
-        for aURL_Key in  dicURL:
-            fetcher = RecordFetcher(dicURL[aURL_Key])
-            fetcher.fetch()
-            fetcher.print_records()
-            for rec in fetcher.records:
-                #print(rec.id)
-                db.insert_record(rec)
-                #QApplication.processEvents()
-                
-        db.close()
-        
-        self.label.setText(f"****A/B 資料庫更新完畢****")
-        QApplication.processEvents()
-        time.sleep(1)        
+        self.btn_a1.setEnabled(False)
+        self.label.setText("🚀 開始更新資料庫...")
+    
+        self.worker = DBWorkerThread()
+        self.worker.status_update.connect(self.label.setText)
+        self.worker.finished.connect(lambda: self.btn_a1.setEnabled(True))
+        self.worker.start()      
     
     def open_a(self):
         dialog = SubDialogA()
