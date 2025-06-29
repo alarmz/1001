@@ -17,3 +17,8 @@
         - 一份是破音字
         - 另外一份文件是難字
     - 等待人工確認無誤之後新增到字庫A和字庫B中，之後重複匯入字庫AB就可以更新資料庫
+    - 
+此程式為開源工具，使用 Python + PyInstaller 編譯，非病毒。
+來源: https://github.com/alarmz/1001
+用途: 用於文字轉換及 docx 分析
+如有誤報請聯繫：alarmz@gmail.com
