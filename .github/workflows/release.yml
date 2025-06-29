@@ -30,7 +30,7 @@ jobs:
 
       - name: Build Windows EXE
         run: |
-          pyinstaller DB_mgr_GUI.py --onefile --windowed --icon=icon.ico --name DB_mgr_GUI_${{ steps.version.outputs.version }}
+          pyinstaller DB_mgr_GUI.py --onefile --clean --noupx --windowed --icon=icon.ico --name DB_mgr_GUI_${{ steps.version.outputs.version }}
 
       - name: Upload Windows EXE to Release
         uses: softprops/action-gh-release@v2
@@ -97,3 +97,7 @@ jobs:
           files: DBMgrGUI_${{ steps.version.outputs.version }}.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Add README inside app bundle
+        run: cp README.txt dist/DBMgrGUI.app/Contents/Resources/
+

@@ -88,7 +88,7 @@ class docx1001:
             self.conn.commit()    
             
     def Insert_Image_to_DB_CASE_B(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 1, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A1', 1, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
@@ -101,7 +101,7 @@ class docx1001:
     
     def Insert_Sound_Words_to_DB(self, sWord):
         #normal_word
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'dual', 0, NULL)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A3', 0, NULL)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):
             self.cursor.execute(SQL)

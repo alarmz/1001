@@ -78,21 +78,21 @@ class Scan_Exists_Docx:
             return file.read()    
                 
     def Insert_Image_to_DB(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 0, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A1', 0, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
             self.conn.commit()
             
     def Insert_Image_to_DB_Special_CASEA(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'Font_Dual', 0, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A3', 0, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
             self.conn.commit()    
             
     def Insert_Image_to_DB_CASE_B(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 1, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'B', 1, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
@@ -112,25 +112,19 @@ class Scan_Exists_Docx:
         return self.cursor.fetchone()    
     
     def dbCheck_Dual_Sound_Exists(self, sWord):
-        SQL = f"Select * FROM [Word] WHERE sType = 'dual' and sWord = '{sWord}'"
+        SQL = f"Select * FROM [Word] WHERE sType in ('A3', 'A4', 'A5') and sWord = '{sWord}'"
         self.cursor.execute(SQL)
         return self.cursor.fetchone()        
     
     def Insert_Sound_Words_to_DB(self, sWord):
         #normal_word
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'dual', 0, NULL)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A3', 0, NULL)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):
             self.cursor.execute(SQL)
             self.conn.commit()
         
-    def Insert_Normal_words_to_DB(self, sWord):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'normal', 0, NULL)"
-        isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
-        if (isExists == None):        
-            self.cursor.execute(SQL)
-            self.conn.commit()
-            
+           
     def CASE_A_Need_Highlight_Hard(self, index, para, run):
         #●	a1差異字（黃底＋截圖）編號1-編號43
         #●	a2差異字（待考究，黃底＋截圖）編號1-編號4
