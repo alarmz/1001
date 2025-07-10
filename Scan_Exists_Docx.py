@@ -69,6 +69,7 @@ class Scan_Exists_Docx:
             os.makedirs(Image_Font)        
         if image_blob:
             file_name = os.path.join(Image_Font, f"{sFile}_{sRun}.jpg")
+            file_name = file_name.replace("\n", "")
             with open(file_name, "wb") as f:
                 f.write(image_blob)
         return file_name

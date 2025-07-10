@@ -70,6 +70,7 @@ class docx1001:
         return file_name
     
     def convert_to_binary_data(self, filename):
+        filename = filename.replace("\n", "")
         with open(filename, 'rb') as file:
             return file.read()    
                 
