@@ -75,14 +75,14 @@ class docx1001:
             return file.read()    
                 
     def Insert_Image_to_DB(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'FontType', 0, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A1', 0, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))
             self.conn.commit()
             
     def Insert_Image_to_DB_Special_CASEA(self, sWord, imgData):
-        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'Font_Dual', 0, ?)"
+        SQL = f"INSERT INTO Word(sWord ,sType ,isIgnore, imgData) VALUES('{sWord}', 'A5', 0, ?)"
         isExists = self.dbCheck_Exist_B4_Insert("Word", sWord)
         if (isExists == None):        
             self.cursor.execute(SQL, (imgData, ))

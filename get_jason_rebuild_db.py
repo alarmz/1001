@@ -42,7 +42,8 @@ class WordDatabase:
             return
     
         img_data = None
-        if record.url:
+        
+        if (record.url) and (is_ignore != 1):
             
             headers = {"User-Agent": "Mozilla/5.0"}
             response = requests.get(record.url, timeout=10, headers=headers)
